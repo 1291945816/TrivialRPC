@@ -2,7 +2,13 @@ cmake_minimum_required(VERSION 3.20)
 project(tcpsever)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE "Debug")
 
-file(GLOB SRC_SOURCE src/* )
-add_executable(${PROJECT_NAME} ${SRC_SOURCE})
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+# 配置日志宏 默认日志是Debug级别，仅支持INFO级别、Debug的调整 
+# 取消该注释则是 INFO级别的日志
+# add_definitions(-DINFO_FLAG)
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+add_subdirectory(src)
+add_subdirectory(examples)
