@@ -33,3 +33,4 @@
 .cache
 build
 run_log.log
+.vscode

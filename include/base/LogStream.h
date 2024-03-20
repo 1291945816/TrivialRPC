@@ -9,10 +9,13 @@
 #ifndef LOGSTREAM_H
 #define LOGSTREAM_H
 
-#include "Buffer.h"
+#include "Buffer.hpp"
 #include <cstring>
 #include <iostream>
 #include <string>
+
+
+
 class LogStream {
 public:
 	LogStream& operator<<(bool v) {
@@ -53,10 +56,10 @@ public:
 	LogStream& operator<<(long double);
 
 	bool append(const char* str, int len) { return buffer_.append(str, len); }
-	const Buffer& buffer() const { return buffer_; }
+	const Buffer<LOG_BUFFER_SIZE>& buffer() const { return buffer_; }
 
 private:
-	Buffer buffer_;
+	Buffer<LOG_BUFFER_SIZE> buffer_;
 	static constexpr int K_MAXNUMERIC_SIZE{32};
 	/**
 	 * @brief 用于格式化整数

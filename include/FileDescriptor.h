@@ -24,7 +24,7 @@ public:
 	}
 
 private:
-	int sock_fd_{0};
+	int sock_fd_{-1};
 };
 
 template <> struct std::hash<FileDescriptor> {

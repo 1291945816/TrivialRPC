@@ -7,6 +7,7 @@
  ********************************************************************************/
 
 #include "Client.h"
+#include "base/Logger.h"
 #include "common.h"
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
@@ -81,7 +82,7 @@ bool Client::receive_data() {
 }
 
 void Client::close() {
-	std::cout << "已关闭连接: " << this->get_ip();
+	DEBUG_LOG << "已关闭连接: " << this->get_ip();
 	set_connected(false);
 	const auto ret = ::close(sock_fd_.get());
 	if (ret == -1)
@@ -90,8 +91,8 @@ void Client::close() {
 
 void Client::print() const {
 	const std::string connected = is_connected() ? "True" : "False";
-	std::cout << "-----------------\n"
-	          << "IP address: " << get_ip() << std::endl
-	          << "Connected?: " << connected << std::endl
-	          << "Socket FD: " << sock_fd_.get() << std::endl;
+	INFO_LOG << "-----------------";
+	INFO_LOG << "IP address: " << get_ip();
+	INFO_LOG << "Connected?: " << connected;
+	INFO_LOG << "Socket FD: " << sock_fd_.get();
 }

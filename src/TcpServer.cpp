@@ -10,6 +10,7 @@
 #include "Client.h"
 #include "FileDescriptor.h"
 #include "ResultType.h"
+#include "base/Logger.h"
 #include "common.h"
 #include <algorithm>
 #include <cerrno>
@@ -118,7 +119,7 @@ void TcpServer::client_event_handler(const Client& client, ClientEvent event,
 }
 
 void TcpServer::run() {
-
+	INFO_LOG << "Server::run";
 	while (true) {
 		auto ret = epoll_wait(epoll_fd, events_, MAX_EVENT_NUMBER, -1);
 		if (ret == -1)
@@ -207,12 +208,12 @@ ResultType TcpServer::start(int port, int max_num_of_clients,
 	add_fd(sock_fd_, false);
 	// 其他初始化工作
 	threadpool.reset(new putils::ThreadPool{}); // 配置线程数目
-
+	INFO_LOG << "Server::start in " << port;
 	return ResultType::SUCCESS();
 }
 
 void TcpServer::terminate_dead_clients_remover() {
-	if (_clients_remove_thread) {
+	if (_clients_remove_thread && _clients_remove_thread->joinable()) {
 		stop_remove_clients_task_ = true;
 		_clients_remove_thread->join();
 
@@ -275,8 +276,9 @@ ResultType TcpServer::close() {
 
 void TcpServer::printClients() {
 	std::lock_guard<std::mutex> lock(client_mtx);
+	
 	if (clients_idx_.empty()) {
-		std::cout << "no connected clients\n";
+		DEBUG_LOG << "no connected clients";
 	}
 	for (const auto [file_desc, client] : clients_idx_) {
 		client->print();
@@ -316,10 +318,6 @@ void TcpServer::handle_et_event(int number) {
 		auto socket_fd = events_[i].data.fd;
 		if (socket_fd == sock_fd_.get()) { // 客户端连接
 			auto clientIP = accept_client();
-			std::cout << "accepted new client with IP: " << clientIP << "\n"
-			          << "== updated list of accepted clients =="
-			          << "\n"
-			          << std::endl;
 			printClients();
 
 		} else if (events_[i].events & EPOLLIN) { // 可读事件

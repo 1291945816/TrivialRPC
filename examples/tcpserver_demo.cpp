@@ -10,10 +10,6 @@ TcpServer server;
 ServerObserver observer;
 
 void onIncomingMsg(const std::string& clientIP, const char* msg, size_t size) {
-	DEBUG_LOG << "Test.." << 12 << &msg;
-	INFO_LOG  << "It is a info test";
-	WARNING_LOG << "It is a warning test";
-	ERROR_LOG  << "It is a error test";
 	// print client message
 	std::cout << "Observer1 got client msg: " << msg << "\n";
 	server.send_to_client(clientIP, msg, strlen(msg));

@@ -21,7 +21,8 @@ enum class Result {
 	SUCCESS, // 成功
 };
 
-Result wait_for(const FileDescriptor& file_desc, uint32_t timeout_sec = 1);
+Result wait_for_read(const FileDescriptor& file_desc, uint32_t timeout_sec = 3);
+Result wait_for_write(const FileDescriptor& file_desc, uint32_t timeout_sec=3);
 
 } // namespace fd_wait
 
