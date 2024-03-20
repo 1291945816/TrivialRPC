@@ -9,7 +9,7 @@
 #ifndef LOGSTREAM_H
 #define LOGSTREAM_H
 
-#include "LogBuffer.h"
+#include "Buffer.h"
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -53,10 +53,10 @@ public:
 	LogStream& operator<<(long double);
 
 	bool append(const char* str, int len) { return buffer_.append(str, len); }
-	const LogBuffer& buffer() const { return buffer_; }
+	const Buffer& buffer() const { return buffer_; }
 
 private:
-	LogBuffer buffer_;
+	Buffer buffer_;
 	static constexpr int K_MAXNUMERIC_SIZE{32};
 	/**
 	 * @brief 用于格式化整数

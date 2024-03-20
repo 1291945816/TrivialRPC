@@ -8,7 +8,7 @@
 
 #include "base/Logger.h"
 #include "base/AsyncLogger.h"
-#include "base/LogBuffer.h"
+#include "base/Buffer.h"
 #include "base/LogStream.h"
 #include <cstddef>
 #include <cstring>
@@ -93,6 +93,6 @@ void transfer(const char* msg, int len) {
 
 Logger::~Logger() {
 	impl_ptr->stream << "\n";
-	const LogBuffer& buf(stream().buffer());
+	const Buffer& buf(stream().buffer());
 	transfer(buf.data(), buf.size());
 }

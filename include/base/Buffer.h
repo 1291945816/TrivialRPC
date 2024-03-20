@@ -10,7 +10,7 @@
 #define LOGBUFFER_H
 
 #include <cstddef>
-class LogBuffer {
+class Buffer {
 public:
 	bool append(const char* str, int len);
 	int avail() const;

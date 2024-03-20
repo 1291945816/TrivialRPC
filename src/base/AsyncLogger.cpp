@@ -7,7 +7,7 @@
  ********************************************************************************/
 
 #include "base/AsyncLogger.h"
-#include "base/LogBuffer.h"
+#include "base/Buffer.h"
 #include "cassert"
 #include <algorithm>
 #include <cerrno>
@@ -60,7 +60,7 @@ void AsyncLogger::append_log_file() {
 		{
 			std::unique_lock<std::mutex> lock_(mutex_);
 			assert(cur_buffer_);
-			if (cur_buffer_->avail() == LogBuffer::BUFFER_MAX_SIZE)
+			if (cur_buffer_->avail() == Buffer::BUFFER_MAX_SIZE)
 				cond_.wait_for(lock_, std::chrono::seconds(flush_time_));
 
 			// 交换

@@ -9,7 +9,7 @@
 #ifndef ASYNCLOGGER_H
 #define ASYNCLOGGER_H
 
-#include "LogBuffer.h"
+#include "Buffer.h"
 #include <atomic>
 #include <condition_variable>
 #include <memory>
@@ -36,7 +36,6 @@ private:
 	void append_log_file();
 
 private:
-	using Buffer = LogBuffer;
 	using BufferPtr = std::unique_ptr<Buffer>;
 	using File_ptr = std::unique_ptr<std::FILE,Flcoser>;
 
