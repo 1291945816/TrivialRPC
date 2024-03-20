@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstring>
 #include <functional>
+#include <memory>
 #include <stdexcept>
 
 AsyncLogger::AsyncLogger(std::string log_file, int flush_interval)
@@ -27,9 +28,10 @@ AsyncLogger::AsyncLogger(std::string log_file, int flush_interval)
 }
 
 void AsyncLogger::init() {
-	fp_ = fopen(base_name_.c_str(), "a");
+	auto fp_ = std::fopen(base_name_.c_str(), "a");
 	if (fp_ == NULL)
 		perror("open log file failed !\n");
+	fp_ptr = std::unique_ptr<std::FILE,Flcoser>(fp_,Flcoser{});
 }
 
 void AsyncLogger::append(const char* msg, int len) {
@@ -68,14 +70,14 @@ void AsyncLogger::append_log_file() {
 			if (!next_buffer_)
 				next_buffer_ = std::move(to_file_buffer_next);
 		}
-		assert(fp_);
+		assert(fp_ptr);
 		for (auto& buf : to_file_buffers) {
 			int write_len = buf->size();
-			auto ret = fwrite(buf->data(), 1, write_len, fp_);
+			auto ret = std::fwrite(buf->data(), 1, write_len, fp_ptr.get());
 			if (ret != write_len)
 				perror("AsyncLogger::append_log_file() fwrite failed !\n");
 		}
-		fflush(fp_);
+		fflush(fp_ptr.get());
 		if (to_file_buffers.size() > 2) {
 			to_file_buffers.resize(2);
 		}
@@ -93,7 +95,7 @@ void AsyncLogger::append_log_file() {
 		}
 		to_file_buffers.clear();
 	}
-	fflush(fp_);
+	fflush(fp_ptr.get());
 }
 
 void AsyncLogger::run() {
@@ -111,5 +113,4 @@ void AsyncLogger::terminate() {
 
 AsyncLogger::~AsyncLogger() {
 	terminate();
-	fclose(fp_);
 }

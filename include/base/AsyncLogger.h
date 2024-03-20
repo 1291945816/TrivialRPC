@@ -17,6 +17,12 @@
 #include <thread>
 #include <vector>
 
+struct Flcoser{
+	void operator()(std::FILE* fp) const noexcept{
+		std::fclose(fp);
+	}
+};
+
 class AsyncLogger {
 public:
 	AsyncLogger(std::string log_file, int flush_interval = 2);
@@ -32,6 +38,7 @@ private:
 private:
 	using Buffer = LogBuffer;
 	using BufferPtr = std::unique_ptr<Buffer>;
+	using File_ptr = std::unique_ptr<std::FILE,Flcoser>;
 
 	BufferPtr cur_buffer_;                       // 当前缓冲区
 	BufferPtr next_buffer_;                      // 另一个缓冲区
@@ -39,7 +46,7 @@ private:
 	std::unique_ptr<std::thread> worker_thread_; // 工作线程（负责写日志）
 	const std::string base_name_;                // 日志文件名称
 	int flush_time_;
-	FILE* fp_;
+	File_ptr fp_ptr;
 	// 互斥操作的处理
 	std::mutex mutex_;
 	std::condition_variable_any cond_;
