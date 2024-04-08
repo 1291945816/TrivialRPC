@@ -235,8 +235,10 @@ void TcpServer::remove_dead_clients() {
 			while (removed_client != clients_idx_.end()) {
 
 				(removed_client->second)->close();
+				client_write_mtx_.erase(removed_client->first);
 				delete removed_client->second;
 				clients_idx_.erase(removed_client);
+				
 
 				removed_client = std::find_if(
 				    clients_idx_.begin(), clients_idx_.end(),
@@ -276,7 +278,7 @@ ResultType TcpServer::close() {
 
 void TcpServer::printClients() {
 	std::lock_guard<std::mutex> lock(client_mtx);
-	
+
 	if (clients_idx_.empty()) {
 		DEBUG_LOG << "no connected clients";
 	}
@@ -323,6 +325,8 @@ void TcpServer::handle_et_event(int number) {
 		} else if (events_[i].events & EPOLLIN) { // 可读事件
 			FileDescriptor file_desc(socket_fd);
 			auto client = clients_idx_[file_desc];
+			if(client_write_mtx_.count(file_desc) == 0)
+				client_write_mtx_.emplace(file_desc,std::mutex()); // 构造
 
 			// 对客户端处理数据
 			threadpool->submit([this, &client, &file_desc]() {

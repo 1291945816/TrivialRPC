@@ -32,7 +32,7 @@ class TcpServer {
 public:
 	TcpServer();
 
-	~TcpServer();
+	virtual ~TcpServer();
 
 	ResultType start(int port, int max_num_of_clients = 5,
 	                 bool remove_dead_client_auto = true);
@@ -99,48 +99,8 @@ public:
 
 	void printClients();
 
+
 private:
-	/**
-	 * @brief 客户端发来消息时 处理对应的消息
-	 *
-	 * @param client
-	 * @param msg
-	 * @param msg_size
-	 */
-	void publish_client_msg(const Client& client, const char* msg,
-	                        size_t msg_size);
-
-	/**
-	 * @brief 客户端失去链接时，处理对应的消息
-	 *
-	 * @param client
-	 * @param msg
-	 * @param msg_size
-	 */
-	void publish_client_disconnected(const std::string& client_ip,
-	                                 const std::string& msg);
-
-	/**
-	 * @brief 负责处理来自客户端的情况
-	 *
-	 * @param client
-	 * @param event
-	 * @param msg
-	 */
-	void client_event_handler(const Client& client, ClientEvent event,
-	                          const std::string& msg);
-
-	/**
-	 * @brief 发送消息给指定的客户端
-	 *
-	 * @param client
-	 * @param msg
-	 * @param size
-	 * @return ResultType
-	 */
-	static ResultType send_to_client(const Client& client, const char* msg,
-	                                 size_t size);
-
 	/**
 	 * @brief 终止正在运行的后台线程
 	 *
@@ -184,7 +144,51 @@ private:
 	 * @return std::string
 	 */
 	std::string accept_client();
+protected:
+	/**
+	 * @brief 客户端发来消息时 处理对应的消息
+	 *
+	 * @param client
+	 * @param msg
+	 * @param msg_size
+	 */
+	virtual void publish_client_msg(const Client& client, const char* msg,
+	                        size_t msg_size);
 
+	/**
+	 * @brief 客户端失去链接时，处理对应的消息
+	 *
+	 * @param client
+	 * @param msg
+	 * @param msg_size
+	 */
+	virtual void publish_client_disconnected(const std::string& client_ip,
+	                                 const std::string& msg);
+
+	/**
+	 * @brief 负责处理来自客户端的情况
+	 *
+	 * @param client
+	 * @param event
+	 * @param msg
+	 */
+	void client_event_handler(const Client& client, ClientEvent event,
+	                          const std::string& msg);
+
+	/**
+	 * @brief 发送消息给指定的客户端
+	 *
+	 * @param client
+	 * @param msg
+	 * @param size
+	 * @return ResultType
+	 */
+	static ResultType send_to_client(const Client& client, const char* msg,
+	                                 size_t size);
+
+	std::unique_ptr<putils::ThreadPool> threadpool; // 引入线程池
+		    // 增加写锁的支持
+    std::unordered_map<FileDescriptor, std::mutex> client_write_mtx_;
 private:
 	struct sockaddr_in server_addr_; // 服务器端socket地址
 	struct sockaddr_in client_addr_; // 客户端socket地址
@@ -205,7 +209,7 @@ private:
 	int epoll_fd;                          // epoll 句柄
 	epoll_event events_[MAX_EVENT_NUMBER]; // 事件集
 
-	std::unique_ptr<putils::ThreadPool> threadpool; // 引入线程池
+	
 };
 
 #endif // TCPSERVER_H
