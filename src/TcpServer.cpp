@@ -326,7 +326,7 @@ void TcpServer::handle_et_event(int number) {
 			FileDescriptor file_desc(socket_fd);
 			auto client = clients_idx_[file_desc];
 			if(client_write_mtx_.count(file_desc) == 0)
-				client_write_mtx_.emplace(file_desc,std::mutex()); // 构造
+				client_write_mtx_.insert({file_desc,std::make_unique<std::mutex>()}); // 堆上维护 std::mutex
 
 			// 对客户端处理数据
 			threadpool->submit([this, &client, &file_desc]() {

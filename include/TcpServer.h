@@ -99,7 +99,6 @@ public:
 
 	void printClients();
 
-
 private:
 	/**
 	 * @brief 终止正在运行的后台线程
@@ -144,7 +143,9 @@ private:
 	 * @return std::string
 	 */
 	std::string accept_client();
+
 protected:
+	using unique_mtx_ptr = std::unique_ptr<std::mutex>;
 	/**
 	 * @brief 客户端发来消息时 处理对应的消息
 	 *
@@ -153,7 +154,7 @@ protected:
 	 * @param msg_size
 	 */
 	virtual void publish_client_msg(const Client& client, const char* msg,
-	                        size_t msg_size);
+	                                size_t msg_size);
 
 	/**
 	 * @brief 客户端失去链接时，处理对应的消息
@@ -163,7 +164,7 @@ protected:
 	 * @param msg_size
 	 */
 	virtual void publish_client_disconnected(const std::string& client_ip,
-	                                 const std::string& msg);
+	                                         const std::string& msg);
 
 	/**
 	 * @brief 负责处理来自客户端的情况
@@ -187,8 +188,9 @@ protected:
 	                                 size_t size);
 
 	std::unique_ptr<putils::ThreadPool> threadpool; // 引入线程池
-		    // 增加写锁的支持
-    std::unordered_map<FileDescriptor, std::mutex> client_write_mtx_;
+	                                                // 增加写锁的支持
+	std::unordered_map<FileDescriptor, unique_mtx_ptr> client_write_mtx_;
+
 private:
 	struct sockaddr_in server_addr_; // 服务器端socket地址
 	struct sockaddr_in client_addr_; // 客户端socket地址
@@ -208,8 +210,6 @@ private:
 
 	int epoll_fd;                          // epoll 句柄
 	epoll_event events_[MAX_EVENT_NUMBER]; // 事件集
-
-	
 };
 
 #endif // TCPSERVER_H
