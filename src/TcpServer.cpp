@@ -253,6 +253,7 @@ void TcpServer::remove_dead_clients() {
 }
 
 ResultType TcpServer::close() {
+	DEBUG_LOG << "close tcpserver";
 	terminate_dead_clients_remover(); //  终止线程的工作
 
 	{

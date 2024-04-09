@@ -25,7 +25,7 @@ struct Flcoser{
 
 class AsyncLogger {
 public:
-	AsyncLogger(std::string log_file, int flush_interval = 2);
+	AsyncLogger(std::string log_file, int flush_interval = 1);
 	void append(const char*, int);
 	void run();
 	void terminate();

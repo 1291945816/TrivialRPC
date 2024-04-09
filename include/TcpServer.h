@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return ResultType
 	 */
-	ResultType close();
+	virtual ResultType close();
 
 	void printClients();
 

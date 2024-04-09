@@ -30,11 +30,9 @@ int main() {
 			DEBUG_LOG << "connect successfully!";
 			client.send_msg("Hello!!", 8);
 			connected = true;
-            sleep(3);
 		} else {
 			DEBUG_LOG << "Client failed to connect: " << ret.message() << ","
 			          << "Make sure the server is open and listening";
-			sleep(3);
 			DEBUG_LOG << "Retrying to connect...";
 		}
 	}

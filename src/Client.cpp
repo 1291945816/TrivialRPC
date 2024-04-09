@@ -52,15 +52,12 @@ bool Client::receive_data() {
 
 		char rec_buf[MAX_PACKET_SIZE] = {'\0'};
 		auto numofBytes_rec =
-		    recv(sock_fd_.get(), &rec_buf, MAX_PACKET_SIZE, 0);
+		    ::recv(sock_fd_.get(), &rec_buf, MAX_PACKET_SIZE, 0);
 		if (numofBytes_rec < 1) {
 			std::string disconnect_msg;
-
 			if (numofBytes_rec < 0) {
-
 				// 读取完毕
 				if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-
 					publishEvent(ClientEvent::INCOMING_MSG, msg);
 					return true;
 				} else {
@@ -95,4 +92,39 @@ void Client::print() const {
 	INFO_LOG << "IP address: " << get_ip();
 	INFO_LOG << "Connected?: " << connected;
 	INFO_LOG << "Socket FD: " << sock_fd_.get();
+}
+
+ssize_t Client::recv(void* buffer, size_t length, int flag) {
+	if (is_connected()) {
+		return ::recv(sock_fd_.get(), buffer, length, flag);
+	}
+	return -1;
+}
+
+ssize_t Client::recv(iovec* buffers, size_t length, int flags) {
+	if (is_connected()) {
+		msghdr msg;
+		memset(&msg, 0, sizeof(msg));
+		msg.msg_iov = (iovec*)buffers;
+		msg.msg_iovlen = length;
+		return ::recvmsg(sock_fd_.get(), &msg, flags);
+	}
+	return -1;
+}
+
+ssize_t Client::send(const void* buffer, size_t length, int flag) {
+	if (is_connected()) {
+		return ::send(sock_fd_.get(), buffer, length, flag);
+	}
+	return -1;
+}
+ssize_t Client::send(const iovec* buffers, size_t length, int flag) {
+	if (is_connected()) {
+		msghdr msg;
+		memset(&msg, 0, sizeof(msg));
+		msg.msg_iov = (iovec*)buffers;
+		msg.msg_iovlen = length;
+		return ::sendmsg(sock_fd_.get(), &msg, flag);
+	}
+	return -1;
 }
