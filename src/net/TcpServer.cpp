@@ -6,12 +6,13 @@
  * @description:
  ********************************************************************************/
 
-#include "TcpServer.h"
-#include "Client.h"
-#include "FileDescriptor.h"
-#include "ResultType.h"
+#include "net/TcpServer.h"
+#include "net/Client.h"
+#include "net/FileDescriptor.h"
+#include "net/ResultType.h"
+#include "base/ByteArray.h"
 #include "base/Logger.h"
-#include "common.h"
+#include "net/common.h"
 #include <algorithm>
 #include <cerrno>
 #include <cstdio>
@@ -78,42 +79,42 @@ void TcpServer::init_epoll(int size) {
 		throw std::runtime_error(strerror(errno));
 }
 
-void TcpServer::publish_client_msg(const Client& client, const char* msg,
-                                   size_t msg_size) {
+void TcpServer::publish_client_msg(Client::ptr client, ByteArray::ptr bt
+                                   ) {
 	std::lock_guard<std::mutex> lock(subscribers_mtx);
 
 	for (const auto& sub : subscribers_) {
-		if (sub.wanted_ip == client.get_ip() || sub.wanted_ip.empty()) {
+		if (sub.wanted_ip == client->get_ip() || sub.wanted_ip.empty()) {
 			if (sub.incoming_packet_handler_) {
-				sub.incoming_packet_handler_(client.get_ip(), msg, msg_size);
+				sub.incoming_packet_handler_(client->get_ip(), bt);
 			}
 		}
 	}
 }
 
-void TcpServer::publish_client_disconnected(const std::string& client_ip,
-                                            const std::string& msg) {
+void TcpServer::publish_client_disconnected(Client::ptr client,
+                                            ByteArray::ptr bt) {
 	std::lock_guard<std::mutex> lock(subscribers_mtx);
 
 	for (const auto& sub : subscribers_) {
-		if (sub.wanted_ip == client_ip || sub.wanted_ip.empty()) {
+		if (sub.wanted_ip == client->get_ip() || sub.wanted_ip.empty()) {
 			if (sub.disconnection_handler_) {
-				sub.disconnection_handler_(client_ip, msg);
+				sub.disconnection_handler_(client->get_ip(), bt);
 			}
 		}
 	}
 }
 
-void TcpServer::client_event_handler(const Client& client, ClientEvent event,
-                                     const std::string& msg) {
-
+void TcpServer::client_event_handler(Client::ptr client, ClientEvent event,
+                                     ByteArray::ptr bt) {
+	INFO_LOG << client->get_ip() << "client event handle.";
 	switch (event) {
 	case ClientEvent::DISCONNECTED: {
-		publish_client_disconnected(client.get_ip(), msg);
+		publish_client_disconnected(client, bt);
 		break;
 	}
 	case ClientEvent::INCOMING_MSG: {
-		publish_client_msg(client, msg.c_str(), msg.size());
+		publish_client_msg(client, bt);
 	}
 	}
 }
@@ -137,7 +138,7 @@ std::string TcpServer::accept_client() {
 	if (client_desc == -1)
 		throw std::runtime_error(strerror(errno));
 
-	auto client = new Client(client_desc); // 新的连接信息
+	auto client = std::make_shared<Client>(client_desc); // 新的连接信息
 	FileDescriptor client_file_desc(client_desc);
 	client->set_ip(inet_ntoa(client_addr_.sin_addr)); // inet_ntoa 不可重入
 	using namespace std::placeholders;
@@ -146,16 +147,16 @@ std::string TcpServer::accept_client() {
 	add_fd(client_file_desc);
 
 	std::lock_guard<std::mutex> lock(client_mtx);
-	clients_idx_.emplace(client_file_desc, client);
+	clients_idx_.insert({client_file_desc, client});
 
 	return client->get_ip();
 }
 
-ResultType TcpServer::send_to_client(const Client& client, const char* msg,
+ResultType TcpServer::send_to_client(Client::ptr client, const char* msg,
                                      size_t size) {
 
 	try {
-		client.send(msg, size);
+		client->send(msg, size);
 	} catch (const std::runtime_error& err) {
 		return ResultType::FAILURE(err.what());
 	}
@@ -166,7 +167,7 @@ ResultType TcpServer::send_to_all_clients(const char* msg, size_t size) {
 	std::lock_guard<std::mutex> lock(client_mtx);
 
 	for (const auto [file_desc, client] : clients_idx_) {
-		const auto ret = send_to_client(*client, msg, size);
+		const auto ret = send_to_client(client, msg, size);
 		if (!ret.is_successful()) {
 			return ret;
 		}
@@ -180,7 +181,7 @@ ResultType TcpServer::send_to_client(const std::string& client_ip,
 
 	auto iter =
 	    std::find_if(clients_idx_.begin(), clients_idx_.end(),
-	                 [&client_ip](std::pair<FileDescriptor, Client*> client) {
+	                 [&client_ip](std::pair<FileDescriptor, Client::ptr> client) {
 		                 return (client.second)->get_ip() == client_ip;
 	                 });
 
@@ -188,7 +189,7 @@ ResultType TcpServer::send_to_client(const std::string& client_ip,
 		return ResultType::FAILURE("client not found!");
 	}
 
-	return send_to_client(*(iter->second), msg, size);
+	return send_to_client(iter->second, msg, size);
 }
 
 ResultType TcpServer::start(int port, int max_num_of_clients,
@@ -222,13 +223,13 @@ void TcpServer::terminate_dead_clients_remover() {
 }
 
 void TcpServer::remove_dead_clients() {
-	std::unordered_map<FileDescriptor, Client*>::iterator removed_client;
+	std::unordered_map<FileDescriptor, Client::ptr>::iterator removed_client;
 	while (!stop_remove_clients_task_) {
 		{
 			std::lock_guard<std::mutex> lock(client_mtx);
 			removed_client = std::find_if(
 			    clients_idx_.begin(), clients_idx_.end(),
-			    [](const std::pair<FileDescriptor, Client*>& client) {
+			    [](const std::pair<FileDescriptor, Client::ptr>& client) {
 				    return !(client.second)->is_connected();
 			    });
 
@@ -236,13 +237,12 @@ void TcpServer::remove_dead_clients() {
 
 				(removed_client->second)->close();
 				client_write_mtx_.erase(removed_client->first);
-				delete removed_client->second;
 				clients_idx_.erase(removed_client);
 				
 
 				removed_client = std::find_if(
 				    clients_idx_.begin(), clients_idx_.end(),
-				    [](const std::pair<FileDescriptor, Client*>& client) {
+				    [](const std::pair<FileDescriptor, Client::ptr>& client) {
 					    return !(client.second)->is_connected();
 				    });
 			}
@@ -321,7 +321,7 @@ void TcpServer::handle_et_event(int number) {
 		auto socket_fd = events_[i].data.fd;
 		if (socket_fd == sock_fd_.get()) { // 客户端连接
 			auto clientIP = accept_client();
-			printClients();
+			// printClients();
 
 		} else if (events_[i].events & EPOLLIN) { // 可读事件
 			FileDescriptor file_desc(socket_fd);

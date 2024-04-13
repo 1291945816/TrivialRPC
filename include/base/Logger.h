@@ -11,6 +11,9 @@
 #include "base/LogStream.h"
 #include <memory>
 #include <string>
+
+
+
 class Logger {
 public:
 	enum LogLevel {
@@ -33,7 +36,14 @@ private:
 	static std::string log_file_name_;
 };
 
-extern Logger::LogLevel g_log_level;
+
+#if defined(INFO_FLAG)
+inline Logger::LogLevel g_log_level = Logger::INFO;
+#else
+inline Logger::LogLevel g_log_level = Logger::DEBUG;
+#endif
+
+inline std::string Logger::log_file_name_ = "run_log.log";
 
 #define DEBUG_LOG                               \
 	if (g_log_level <= Logger::LogLevel::DEBUG) \

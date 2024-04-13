@@ -7,6 +7,7 @@
  ********************************************************************************/
 
 #include "rpc/RPCSession.h"
+#include "base/Logger.h"
 #include <bits/types/struct_iovec.h>
 #include <sys/socket.h>
 #include <vector>
@@ -109,6 +110,7 @@ Protocol::ptr RPCSession::recvProtocol() {
 	ByteArray::ptr byteArray = std::make_shared<ByteArray>();
     
 	if (readFixSize(byteArray, proto->BASE_LENGTH) <= 0) {
+        
 		return nullptr;
 	}
 
@@ -116,6 +118,7 @@ Protocol::ptr RPCSession::recvProtocol() {
     proto->decodeMeta(byteArray);
 
 	if (proto->getMagic() != Protocol::MAGIC) {
+        ERROR_LOG << "Magic not match!";
 		return nullptr;
 	}
 
@@ -127,6 +130,7 @@ Protocol::ptr RPCSession::recvProtocol() {
 	buff.resize(proto->getContentLength());
 
 	if (readFixSize(&buff[0], proto->getContentLength()) <= 0) {
+        ERROR_LOG << "have not content data";
 		return nullptr;
 	}
 	proto->setContent(buff);
@@ -135,5 +139,5 @@ Protocol::ptr RPCSession::recvProtocol() {
 
 ssize_t RPCSession::sendProtocol(Protocol::ptr proto) {
     ByteArray::ptr byteArray = proto->encode();
-    return writeFixSize(byteArray, byteArray->getSize());
+    return writeFixSize(byteArray, byteArray->getReadSize());
 }

@@ -6,9 +6,10 @@
  * @description:
  ********************************************************************************/
 
-#include "Client.h"
+#include "net/Client.h"
+#include "base/ByteArray.h"
 #include "base/Logger.h"
-#include "common.h"
+#include "net/common.h"
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
 #include <cerrno>
@@ -27,9 +28,10 @@ Client::Client(int file_desc) {
 	set_connected(true);
 }
 
-void Client::publishEvent(ClientEvent clientEvent, const std::string& msg) {
-	handler_callback_(*this, clientEvent, msg);
+void Client::publishEvent(ClientEvent clientEvent, ByteArray::ptr bt){
+	handler_callback_(shared_from_this(), clientEvent, bt);
 }
+
 
 void Client::send(const char* msg, size_t msgSize) const {
 	const auto ret = ::send(sock_fd_.get(), msg, msgSize, 0);
@@ -47,18 +49,20 @@ void Client::send(const char* msg, size_t msgSize) const {
 
 bool Client::receive_data() {
 
-	std::string msg;
+	ByteArray::ptr byte = std::make_shared<ByteArray>();
 	while (is_connected()) {
 
 		char rec_buf[MAX_PACKET_SIZE] = {'\0'};
-		auto numofBytes_rec =
-		    ::recv(sock_fd_.get(), &rec_buf, MAX_PACKET_SIZE, 0);
+		auto numofBytes_rec=this->recv(rec_buf,MAX_PACKET_SIZE);
+		
 		if (numofBytes_rec < 1) {
 			std::string disconnect_msg;
 			if (numofBytes_rec < 0) {
 				// 读取完毕
 				if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-					publishEvent(ClientEvent::INCOMING_MSG, msg);
+					byte->setPosition(0);
+					INFO_LOG << "data: "<< byte->toString() << " ";
+					publishEvent(ClientEvent::INCOMING_MSG, byte);
 					return true;
 				} else {
 					// -1 发生错误
@@ -69,10 +73,11 @@ bool Client::receive_data() {
 			}
 
 			set_connected(false);
-			publishEvent(ClientEvent::DISCONNECTED, disconnect_msg);
+			byte->writeStringWithoutLength(disconnect_msg);
+			publishEvent(ClientEvent::DISCONNECTED, byte);
 			return false;
 		} else {
-			msg.append(rec_buf);
+			byte->write(rec_buf, numofBytes_rec);
 		}
 	}
 	return true;
@@ -112,13 +117,13 @@ ssize_t Client::recv(iovec* buffers, size_t length, int flags) {
 	return -1;
 }
 
-ssize_t Client::send(const void* buffer, size_t length, int flag) {
+ssize_t Client::send(const void* buffer, size_t length, int flag)const {
 	if (is_connected()) {
 		return ::send(sock_fd_.get(), buffer, length, flag);
 	}
 	return -1;
 }
-ssize_t Client::send(const iovec* buffers, size_t length, int flag) {
+ssize_t Client::send(const iovec* buffers, size_t length, int flag)const {
 	if (is_connected()) {
 		msghdr msg;
 		memset(&msg, 0, sizeof(msg));

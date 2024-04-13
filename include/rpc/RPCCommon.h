@@ -8,7 +8,7 @@
 #ifndef RPCCOMMON_H
 #define RPCCOMMON_H
 
-#include "ResultType.h"
+#include "net/ResultType.h"
 #include "Serializer.h"
 #include <cstdint>
 #include <string>

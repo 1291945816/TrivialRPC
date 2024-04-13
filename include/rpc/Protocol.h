@@ -44,6 +44,7 @@ public:
 
 		RPC_SERVICE_DISCOVER, // 向中心请求服务发现
 		RPC_SERVICE_DISCOVER_RESPONSE,
+
 	};
 
 	// 构建

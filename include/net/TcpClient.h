@@ -24,7 +24,7 @@ class TcpClient {
 
 public:
 	TcpClient()=default;
-	~TcpClient();
+	virtual ~TcpClient();
 	/**
 	 * @brief 连接到指定ip地址的服务器
 	 *
@@ -37,14 +37,16 @@ public:
 	                      int timeout = 3);
 	void subscribe(const ClientObserver& observer);
 	ResultType send_msg(const char* msg, size_t size);
-    ResultType close();
+    virtual ResultType close();
+protected:
+	// 处理接收的消息
+	virtual void publish_server_msg(const char* msg, size_t msg_size);
+	virtual void publish_server_disconnected(const ResultType& ret);
 
 private:
 	void initialize_socket();
 	void set_address(const std::string& address, int port);
-	void publish_server_msg(const char* msg, size_t msg_size);
-	void publish_server_disconnected(const ResultType& ret);
-    void recv_server();
+    void recv_server(); // 转发接收的消息
     /**
      * @brief 开启线程工作
      */

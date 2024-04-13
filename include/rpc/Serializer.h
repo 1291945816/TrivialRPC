@@ -163,6 +163,19 @@ public:
 		deserializer(t, std::index_sequence_for<Args...>{});
 		return *this;
 	}
+	    template<typename... Args>
+    Serializer &operator << (const std::tuple<Args...>& t){
+        /**
+         * @brief 实际的序列化函数，利用折叠表达式展开参数包
+         */
+        const auto& package = [this]<typename Tuple, std::size_t... Index>
+        (const Tuple& t, std::index_sequence<Index...>) {
+            (void)((*this) << ... << std::get<Index>(t));
+        };
+        package(t, std::index_sequence_for<Args...>{});
+        return *this;
+    }
+	
 	template <typename T> Serializer& operator>>(std::list<T>& v) {
 		size_t size;
 		read(size);

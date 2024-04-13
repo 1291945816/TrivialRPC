@@ -9,15 +9,16 @@
 #ifndef SERVEROBSERVER_H
 #define SERVEROBSERVER_H
 
+#include "base/ByteArray.h"
 #include <functional>
 #include <string>
 
 struct ServerObserver {
 	std::string wanted_ip{""}; // "" 代表支持任意的ip地址
 	using IncomingPacketHandlerType = std::function<void(
-	    const std::string& clientIP, const char* msg, size_t size)>;
+	    const std::string& ip, ByteArray::ptr)>;
 	using DisconnectedHandlerType =
-	    std::function<void(const std::string& ip, const std::string& msg)>;
+	    std::function<void(const std::string& ip, ByteArray::ptr)>;
 
 	IncomingPacketHandlerType
 	    incoming_packet_handler_; // 收到来自客户端的消息时

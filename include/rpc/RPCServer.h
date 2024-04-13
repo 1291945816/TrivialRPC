@@ -8,9 +8,11 @@
 #ifndef RPCSERVER_H
 #define RPCSERVER_H
 
-#include "FileDescriptor.h"
+#include "net/Client.h"
+#include "net/FileDescriptor.h"
 #include "RPCCommon.h"
-#include "TcpServer.h"
+#include "net/TcpServer.h"
+#include "base/ByteArray.h"
 #include "base/Logger.h"
 #include "base/traits.h"
 #include "rpc/Protocol.h"
@@ -92,10 +94,9 @@ protected:
 		serializer << val;
 	}
 
-	void publish_client_msg(const Client& client, const char* msg,
-	                        size_t msg_size) override;
-	void publish_client_disconnected(const std::string& client_ip,
-	                                 const std::string& msg) override;
+	void publish_client_msg(Client::ptr client, ByteArray::ptr) override;
+	void publish_client_disconnected(Client::ptr client,
+	                                 ByteArray::ptr) override;
 	/**
 	 * @brief 调用服务端注册的函数，返回序列化的结果
 	 *

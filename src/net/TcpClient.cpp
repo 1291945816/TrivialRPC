@@ -6,10 +6,10 @@
  * @description:
  ********************************************************************************/
 
-#include "TcpClient.h"
-#include "ResultType.h"
+#include "net/TcpClient.h"
+#include "net/ResultType.h"
 #include "base/Logger.h"
-#include "common.h"
+#include "net/common.h"
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>

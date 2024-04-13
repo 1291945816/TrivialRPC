@@ -9,15 +9,16 @@
 /**
  * @brief 负责处理服务端之间的协议
  */
-#include "Client.h"
+#include "net/Client.h"
 #include "base/ByteArray.h"
 #include "Protocol.h"
+#include <memory>
 class RPCSession{
     
 public:
     using ptr = std::shared_ptr<RPCSession>;
     bool is_connected(){return client_ && client_->is_connected();}
-    RPCSession(Client * client):client_(client){}
+    RPCSession(std::shared_ptr<Client> client):client_(client){}
     // 处理协议
     Protocol::ptr recvProtocol();
 
@@ -39,5 +40,5 @@ private:
     ssize_t writeFixSize(ByteArray::ptr buffer, size_t length);
 
 private:
-    Client * client_; // 保存client的信息
+    std::shared_ptr<Client> client_; // 保存client的信息
 };

@@ -12,6 +12,7 @@
 #include "FileDescriptor.h"
 #include "ResultType.h"
 #include "ServerObserver.h"
+#include "base/ByteArray.h"
 #include "base/ThreadPool.hpp"
 #include <arpa/inet.h>
 #include <atomic>
@@ -153,8 +154,7 @@ protected:
 	 * @param msg
 	 * @param msg_size
 	 */
-	virtual void publish_client_msg(const Client& client, const char* msg,
-	                                size_t msg_size);
+	virtual void publish_client_msg(Client::ptr client, ByteArray::ptr bt);
 
 	/**
 	 * @brief 客户端失去链接时，处理对应的消息
@@ -163,8 +163,8 @@ protected:
 	 * @param msg
 	 * @param msg_size
 	 */
-	virtual void publish_client_disconnected(const std::string& client_ip,
-	                                         const std::string& msg);
+	virtual void publish_client_disconnected(Client::ptr client,
+	                                         ByteArray::ptr bt);
 
 	/**
 	 * @brief 负责处理来自客户端的情况
@@ -173,8 +173,8 @@ protected:
 	 * @param event
 	 * @param msg
 	 */
-	void client_event_handler(const Client& client, ClientEvent event,
-	                          const std::string& msg);
+	void client_event_handler(Client::ptr client, ClientEvent event,
+	                          ByteArray::ptr bt);
 
 	/**
 	 * @brief 发送消息给指定的客户端
@@ -184,7 +184,7 @@ protected:
 	 * @param size
 	 * @return ResultType
 	 */
-	static ResultType send_to_client(const Client& client, const char* msg,
+	static ResultType send_to_client(Client::ptr client, const char* msg,
 	                                 size_t size);
 
 	std::unique_ptr<putils::ThreadPool> threadpool; // 引入线程池
@@ -198,7 +198,7 @@ private:
 	FileDescriptor sock_fd_; // scoket 句柄
 	fd_set fds_;             // 用于轮询
 
-	std::unordered_map<FileDescriptor, Client*> clients_idx_; //
+	std::unordered_map<FileDescriptor, Client::ptr> clients_idx_; //
 	std::vector<ServerObserver> subscribers_;
 
 	std::mutex subscribers_mtx; // 订阅者的互斥

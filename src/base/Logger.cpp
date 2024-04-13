@@ -23,14 +23,10 @@
 static pthread_once_t once_control_ = PTHREAD_ONCE_INIT;
 static std::unique_ptr<AsyncLogger> async_logger_ptr;
 static const char* LEVEL_STRING[] = {"DEBUG", "INFO", "WARNING", "ERROR"};
-std::string Logger::log_file_name_ = "run_log.log";
+
 constexpr unsigned int PREINFO_LEN = 256;
 
-#if defined(INFO_FLAG)
-Logger::LogLevel g_log_level = Logger::INFO;
-#else
-Logger::LogLevel g_log_level = Logger::DEBUG;
-#endif
+
 
 class Logger::Impl {
 public:

@@ -25,11 +25,11 @@ enum class ClientEvent {
 	INCOMING_MSG  // 收到消息
 };
 
-class Client {
+class Client:public std::enable_shared_from_this<Client> {
 	using client_event_handler_t =
-	    std::function<void(const Client&, ClientEvent, const std::string&)>;
-
+	    std::function<void(std::shared_ptr<Client>, ClientEvent, ByteArray::ptr )>;
 public:
+	using ptr = std::shared_ptr<Client>;
 	Client(int);
 	bool operator==(const Client& other) const {
 		return (this->sock_fd_.get() == other.sock_fd_.get()) &&
@@ -45,6 +45,7 @@ public:
 	}
 
 	void publishEvent(ClientEvent clientEvent, const std::string& msg = "");
+	void publishEvent(ClientEvent clientEvent, ByteArray::ptr bt);
 
 	bool is_connected() const { return is_connected_; }
 	/**
@@ -65,8 +66,8 @@ public:
 	ssize_t recv(void* buffer, size_t length, int flag = 0);
 	ssize_t recv(iovec* buffers, size_t length, int flags = 0);
 
-	ssize_t send(const void* buffer, size_t length,int flag=0);
-	ssize_t send(const iovec* buffers, size_t length, int flag = 0);
+	ssize_t send(const void* buffer, size_t length,int flag=0) const;
+	ssize_t send(const iovec* buffers, size_t length, int flag = 0) const;
 
 	// 向客户端发送消息
 	void send(const char* msg, size_t msgSize) const;
@@ -77,7 +78,6 @@ public:
 	 */
 	void close();
 	void print() const;
-
 private:
 	FileDescriptor sock_fd_{};        // sock 句柄
 	std::string ip_{""};              // 客户端ip地址

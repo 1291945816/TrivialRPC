@@ -1,5 +1,14 @@
-#include "ServerObserver.h"
-#include "TcpServer.h"
+/********************************************************************************
+* @author: Huang Pisong
+* @email: huangpisong@foxmail.com
+* @date: 2024/04/09 09:39:07
+* @version: 1.0
+* @description: 
+********************************************************************************/ 
+#include "net/Client.h"
+#include "net/ServerObserver.h"
+#include "net/TcpServer.h"
+#include "base/ByteArray.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,14 +18,14 @@
 TcpServer server;
 ServerObserver observer;
 
-void onIncomingMsg(const std::string& clientIP, const char* msg, size_t size) {
+void onIncomingMsg(const std::string& clientIP, ByteArray::ptr bt) {
 	// print client message
-	std::cout << "Observer1 got client msg: " << msg << "\n";
-	server.send_to_client(clientIP, msg, strlen(msg));
+	std::cout << "Observer1 got client msg: " << bt->toString() << "\n";
+	server.send_to_client(clientIP, bt->toString().c_str(), bt->getReadSize());
 }
 
-void onClientDisconnected(const std::string& ip, const std::string& msg) {
-	std::cout << "Client: " << ip << " disconnected. Reason: " << msg << "\n";
+void onClientDisconnected(const std::string& clientIP, ByteArray::ptr bt) {
+	std::cout << "Client: " << clientIP << " disconnected. Reason: " << bt->toString() << "\n";
 }
 
 int main() {
