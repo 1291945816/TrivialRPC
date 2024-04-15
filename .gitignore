@@ -34,4 +34,4 @@
 build
 run_log.log
 .vscode
-bin/*.log
+bin
