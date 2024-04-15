@@ -7,11 +7,11 @@
  ********************************************************************************/
 
 #include "net/TcpServer.h"
+#include "base/ByteArray.h"
+#include "base/Logger.h"
 #include "net/Client.h"
 #include "net/FileDescriptor.h"
 #include "net/ResultType.h"
-#include "base/ByteArray.h"
-#include "base/Logger.h"
 #include "net/common.h"
 #include <algorithm>
 #include <cerrno>
@@ -79,8 +79,7 @@ void TcpServer::init_epoll(int size) {
 		throw std::runtime_error(strerror(errno));
 }
 
-void TcpServer::publish_client_msg(Client::ptr client, ByteArray::ptr bt
-                                   ) {
+void TcpServer::publish_client_msg(Client::ptr client, ByteArray::ptr bt) {
 	std::lock_guard<std::mutex> lock(subscribers_mtx);
 
 	for (const auto& sub : subscribers_) {
@@ -107,7 +106,7 @@ void TcpServer::publish_client_disconnected(Client::ptr client,
 
 void TcpServer::client_event_handler(Client::ptr client, ClientEvent event,
                                      ByteArray::ptr bt) {
-	INFO_LOG << client->get_ip() << "client event handle.";
+	INFO_LOG << client->get_ip() << " client event handle.";
 	switch (event) {
 	case ClientEvent::DISCONNECTED: {
 		publish_client_disconnected(client, bt);
@@ -179,11 +178,11 @@ ResultType TcpServer::send_to_client(const std::string& client_ip,
                                      const char* msg, size_t size) {
 	std::lock_guard<std::mutex> lock(client_mtx);
 
-	auto iter =
-	    std::find_if(clients_idx_.begin(), clients_idx_.end(),
-	                 [&client_ip](std::pair<FileDescriptor, Client::ptr> client) {
-		                 return (client.second)->get_ip() == client_ip;
-	                 });
+	auto iter = std::find_if(
+	    clients_idx_.begin(), clients_idx_.end(),
+	    [&client_ip](std::pair<FileDescriptor, Client::ptr> client) {
+		    return (client.second)->get_ip() == client_ip;
+	    });
 
 	if (iter == clients_idx_.end()) {
 		return ResultType::FAILURE("client not found!");
@@ -238,7 +237,6 @@ void TcpServer::remove_dead_clients() {
 				(removed_client->second)->close();
 				client_write_mtx_.erase(removed_client->first);
 				clients_idx_.erase(removed_client);
-				
 
 				removed_client = std::find_if(
 				    clients_idx_.begin(), clients_idx_.end(),
@@ -326,8 +324,10 @@ void TcpServer::handle_et_event(int number) {
 		} else if (events_[i].events & EPOLLIN) { // 可读事件
 			FileDescriptor file_desc(socket_fd);
 			auto client = clients_idx_[file_desc];
-			if(client_write_mtx_.count(file_desc) == 0)
-				client_write_mtx_.insert({file_desc,std::make_unique<std::mutex>()}); // 堆上维护 std::mutex
+			if (client_write_mtx_.count(file_desc) == 0)
+				client_write_mtx_.insert(
+				    {file_desc,
+				     std::make_unique<std::mutex>()}); // 堆上维护 std::mutex
 
 			// 对客户端处理数据
 			threadpool->submit([this, &client, &file_desc]() {

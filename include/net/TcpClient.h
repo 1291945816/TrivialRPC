@@ -37,7 +37,7 @@ protected:
 	virtual void publish_server_disconnected(const ResultType& ret);
 
 private:
-	void initialize_socket();
+	int initialize_socket();
 	void set_address(const std::string& address, int port);
     void recv_server(); // 转发接收的消息
     /**

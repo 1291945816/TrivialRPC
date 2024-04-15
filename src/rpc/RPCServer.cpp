@@ -101,5 +101,5 @@ void RPCServer::publish_client_msg(Client::ptr client, ByteArray::ptr bt) {
 
 void RPCServer::publish_client_disconnected(Client::ptr client,
                                             ByteArray::ptr bt) {
-	INFO_LOG << "["<< client->get_ip() << "]has disconnected: " << bt->toString();
+	INFO_LOG << "["<< client->get_ip() << "]has disconnected: " << bt->readStringF32();
 }

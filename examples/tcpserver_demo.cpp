@@ -25,7 +25,7 @@ void onIncomingMsg(const std::string& clientIP, ByteArray::ptr bt) {
 }
 
 void onClientDisconnected(const std::string& clientIP, ByteArray::ptr bt) {
-	std::cout << "Client: " << clientIP << " disconnected. Reason: " << bt->toString() << "\n";
+	std::cout << "Client: " << clientIP << " disconnected. Reason: " << bt->readStringF32() << "\n";
 }
 
 int main() {

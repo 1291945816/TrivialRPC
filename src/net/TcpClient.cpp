@@ -36,7 +36,7 @@ TcpClient::TcpClient(ini::IniFile& ini_file){
 }
 
 
-void TcpClient::initialize_socket() {
+int TcpClient::initialize_socket() {
 	sock_fd_.set(socket(AF_INET, SOCK_STREAM, 0));
 	const bool socket_failed = (sock_fd_.get() == -1);
 	if (socket_failed) {
@@ -48,6 +48,7 @@ void TcpClient::initialize_socket() {
 	auto ret = fcntl(sock_fd_.get(), F_SETFL, new_socket_flag);
 	if (ret == -1)
 		throw std::runtime_error(strerror(errno));
+	return old_socket_flag;
 }
 
 void TcpClient::set_address(const std::string& address, int port) {
@@ -67,8 +68,9 @@ void TcpClient::set_address(const std::string& address, int port) {
 }
 
 ResultType TcpClient::connect_server() {
+	int old = -1;
 	try {
-		initialize_socket();
+		old = initialize_socket();
 		set_address(ip_, port_);
 	} catch (const std::runtime_error& error) {
 		ERROR_LOG << error.what();
@@ -85,6 +87,7 @@ ResultType TcpClient::connect_server() {
 			is_connected_ = true;
             is_closed_ = false;
             start_worker();
+			fcntl(sock_fd_.get(), F_SETFL, old);
 			return ResultType::SUCCESS();
 		} else if (connect_result == -1) {
 			if (errno == EINTR) {
@@ -120,6 +123,7 @@ ResultType TcpClient::connect_server() {
 		is_connected_ = true;
         is_closed_ = false;
         start_worker();
+		fcntl(sock_fd_.get(), F_SETFL, old);
 		return ResultType::SUCCESS();
 	} else {
 		ERROR_LOG << "connect to server[" << ip_ << ":" << port_

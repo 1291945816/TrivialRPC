@@ -57,6 +57,7 @@ bool Client::receive_data() {
 		
 		if (numofBytes_rec < 1) {
 			std::string disconnect_msg;
+			
 			if (numofBytes_rec < 0) {
 				// 读取完毕
 				if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
@@ -73,7 +74,8 @@ bool Client::receive_data() {
 			}
 
 			set_connected(false);
-			byte->writeStringWithoutLength(disconnect_msg);
+			byte->writeStringF32(disconnect_msg);
+			byte->setPosition(0);
 			publishEvent(ClientEvent::DISCONNECTED, byte);
 			return false;
 		} else {
