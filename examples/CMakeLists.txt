@@ -1,3 +1,4 @@
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/examples)
 # 构建tcp sever测试
 set(TCPSERVER_EXAMPLE tcpserver_demo.cpp)
 add_executable(server ${TCPSERVER_EXAMPLE})

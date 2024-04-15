@@ -6,6 +6,7 @@
 * @description: 
 ********************************************************************************/ 
 #include "rpc/RPCServer.h"
+#include "inicpp.h"
 #include "net/Client.h"
 #include "net/ResultType.h"
 #include "net/TcpServer.h"
@@ -24,10 +25,12 @@
 #include <string>
 #include <vector>
 
-bool RPCServer::start(int port) {
-	TcpServer::start(port);
-	return true;
+RPCServer::RPCServer(ini::IniFile& file){
+	port_ = file["rpc_server"]["port"].as<int>(); // 获取对应的地址
+	int max_client_nums = file["rpc_server"]["max_client_nums"].as<int>();
+	TcpServer::start(port_,max_client_nums); // 绑定对应端口 并开始配置线程池的数目
 }
+
 ResultType RPCServer::close() { return TcpServer::close(); }
 RPCServer::~RPCServer() { close(); }
 

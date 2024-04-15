@@ -18,7 +18,7 @@
 #include <utility>
 /**
  * @brief 协议规定
-    | magic | version | type | sequence id | content length | content byte[] 
+    | magic | version | type | sequence id | content length | content byte[]
  */
 class Protocol {
 

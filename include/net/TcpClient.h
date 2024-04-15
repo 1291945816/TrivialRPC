@@ -12,6 +12,7 @@
 #include "FileDescriptor.h"
 #include "ResultType.h"
 #include "base/Buffer.hpp"
+#include "inicpp.h"
 #include <atomic>
 #include <cstddef>
 #include <memory>
@@ -23,18 +24,10 @@
 class TcpClient {
 
 public:
-	TcpClient()=default;
+	TcpClient(ini::IniFile&);
 	virtual ~TcpClient();
-	/**
-	 * @brief 连接到指定ip地址的服务器
-	 *
-	 * @param address
-	 * @param port
-	 * @param timeouy 超时设置 默认是3s
-	 * @return ResultType
-	 */
-	ResultType connect_to(const std::string& address, int port,
-	                      int timeout = 3);
+
+	ResultType connect_server();
 	void subscribe(const ClientObserver& observer);
 	ResultType send_msg(const char* msg, size_t size);
     virtual ResultType close();
@@ -54,6 +47,9 @@ private:
     void terminate_worker();
 
 private:
+	std::string ip_{"127.0.0.1"};
+	int port_{8081};
+
 	static constexpr std::size_t BUFFER_SIZE{2048 * 1024}; // 缓冲区 2M
 	FileDescriptor sock_fd_;
 	std::atomic_bool is_connected_{false};

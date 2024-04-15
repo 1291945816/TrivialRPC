@@ -8,8 +8,8 @@
 #ifndef RPCCOMMON_H
 #define RPCCOMMON_H
 
-#include "net/ResultType.h"
 #include "Serializer.h"
+#include "net/ResultType.h"
 #include <cstdint>
 #include <string>
 template <typename T>

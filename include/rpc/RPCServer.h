@@ -8,15 +8,16 @@
 #ifndef RPCSERVER_H
 #define RPCSERVER_H
 
-#include "net/Client.h"
-#include "net/FileDescriptor.h"
 #include "RPCCommon.h"
-#include "net/TcpServer.h"
 #include "base/ByteArray.h"
 #include "base/Logger.h"
 #include "base/traits.h"
+#include "net/Client.h"
+#include "net/FileDescriptor.h"
+#include "net/TcpServer.h"
 #include "rpc/Protocol.h"
 #include "rpc/Serializer.h"
+#include "inicpp.h"
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -28,9 +29,9 @@
 
 class RPCServer : public TcpServer {
 public:
-	RPCServer() = default;
+	// 引入使用配置文件进行处理
+	RPCServer(ini::IniFile& ini);
 	~RPCServer();
-	bool start(int port);
 	ResultType close() override;
 
 	/**
@@ -48,6 +49,14 @@ public:
 			proxy(func, serializer, arg);
 		};
 	}
+	
+	/**
+	 * @brief 作为服务提供者，向redis注册服务
+	 * @param service_name 注册的服务名称
+	 * @return true
+	 * @return false
+	 */
+	bool registerService(std::string service_name);
 
 protected:
 	/**

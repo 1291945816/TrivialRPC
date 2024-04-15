@@ -8,15 +8,15 @@
 #ifndef RPCCLIENT_H
 #define RPCCLIENT_H
 
-
-#include "net/Client.h"
 #include "base/Logger.h"
+#include "net/Client.h"
 #include "net/FileDescriptor.h"
-#include "rpc/RPCSession.h"
 #include "net/ResultType.h"
 #include "rpc/Protocol.h"
 #include "rpc/RPCCommon.h"
+#include "rpc/RPCSession.h"
 #include "rpc/Serializer.h"
+#include "inicpp.h"
 #include <atomic>
 #include <cmath>
 #include <memory>
@@ -25,12 +25,11 @@
 #include <tuple>
 #include <type_traits>
 
-
 class RPCClient {
 public:
-    ~RPCClient();
-	ResultType connect_to(const std::string& address, int port,
-	                      int timeout = 3);
+	RPCClient(ini::IniFile ini_file);
+	~RPCClient();
+	ResultType connect_server();
 
 	/**
 	 * @brief 有参调用【同步】
@@ -66,9 +65,8 @@ public:
 	}
 
 private:
-	int  initialize_socket();
+	int initialize_socket();
 	void set_address(const std::string& address, int port);
-	ResultType send_request(const char* msg, size_t size);
 
 	template <typename R>
 	RPCResult<R> call(Serializer s) {
@@ -80,11 +78,8 @@ private:
 		}
 		auto data = Protocol::Create(Protocol::MsgType::RPC_METHOD_REQUEST,
 		                             s.toString());
-		auto ret = session_->sendProtocol(data);
 
-		INFO_LOG <<"data size: "<< data->encode()->toString();
-		// 发送数据
-		// auto ret = send_request(data.c_str(), data.size());
+		auto ret = session_->sendProtocol(data);
 
 		if (ret < 0) {
 			val.setCode(RPC_FAIL);
@@ -117,6 +112,8 @@ private:
 	}
 
 private:
+	std::string ip_; // ip地址
+	int port_;       // 端口地址	
 	FileDescriptor sock_fd_;
 	std::shared_ptr<Client> client_;
 	std::shared_ptr<RPCSession> session_;

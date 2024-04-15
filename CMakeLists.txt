@@ -12,9 +12,23 @@ find_package(Threads REQUIRED)
 # 取消该注释则是 INFO级别的日志
 # add_definitions(-DINFO_FLAG)
 
+set(LINK_ARGS inicpp)
+
+# 设定编译生成的库目录
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+message("------------ LIBRARY_OUTPUT_PATH -------------")
+message(${PROJECT_SOURCE_DIR}/bin/lib)
+
+
 include_directories(${PROJECT_SOURCE_DIR}/include)
+# 引入第三方的头文件
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/inifile-cpp/include) 
 
 add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(tests)
+
+# 第三方模块
+add_subdirectory(thirdparty/inifile-cpp)
+
 

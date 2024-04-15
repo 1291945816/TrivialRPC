@@ -14,7 +14,10 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
-
+RPCClient::RPCClient(ini::IniFile ini_file) {
+	ip_ = ini_file["rpc_client"]["server_ip"].as<std::string>();
+	port_ = ini_file["rpc_client"]["server_port"].as<int>();
+}
 
 int RPCClient::initialize_socket() {
 	sock_fd_.set(socket(AF_INET, SOCK_STREAM, 0));
@@ -47,38 +50,37 @@ void RPCClient::set_address(const std::string& address, int port) {
 	server_.sin_port = htons(port);
 }
 
-ResultType RPCClient::connect_to(const std::string& address, int port,
-                                 int timeout) {
+ResultType RPCClient::connect_server() {
 	int fdopt = 0;
 	try {
 		fdopt = initialize_socket();
-		set_address(address, port);
+		set_address(ip_, port_);
 	} catch (const std::runtime_error& error) {
 		// ERROR_LOG << error.what();
 		return ResultType::FAILURE(error.what());
 	}
-    client_ = std::make_shared<Client>(sock_fd_.get());
-    session_ = std::make_shared<RPCSession>(client_);
+	client_ = std::make_shared<Client>(sock_fd_.get());
+	session_ = std::make_shared<RPCSession>(client_);
 	while (true) {
 		// 连接服务器
 		auto connect_result = connect(
 		    sock_fd_.get(), (struct sockaddr*)&server_, sizeof(server_));
 		if (connect_result == 0) {
-			INFO_LOG << "connect to server[" << address << ":" << port
+			INFO_LOG << "connect to server[" << ip_ << ":" << port_
 			         << "] successfully.";
 			is_connected_ = true;
 			is_closed_ = false;
-            client_->set_connected(true);
+			client_->set_connected(true);
 			fcntl(sock_fd_.get(), F_SETFL, fdopt);
 			return ResultType::SUCCESS();
 		} else if (connect_result == -1) {
 			if (errno == EINTR) {
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "] interruptted by signal, try again.";
 				continue;
 			} else if (errno == EINPROGRESS) {
 				// 连接正在重试中
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "]  try again....";
 				break;
 			} else {
@@ -90,8 +92,7 @@ ResultType RPCClient::connect_to(const std::string& address, int port,
 	auto ret = fd_wait::wait_for_write(sock_fd_.get());
 	if (ret != fd_wait::Result::SUCCESS) {
 
-		ERROR_LOG << "connect to server[" << address << ":" << port
-		          << "] error.";
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_ << "] error.";
 		return ResultType::FAILURE(strerror(errno));
 	}
 	int err;
@@ -100,54 +101,23 @@ ResultType RPCClient::connect_to(const std::string& address, int port,
 		return ResultType::FAILURE(strerror(errno));
 	}
 	if (err == 0) {
-		INFO_LOG << "[select]connect to server[" << address << ":" << port
+		INFO_LOG << "[select]connect to server[" << ip_ << ":" << port_
 		         << "] successfully.";
 		is_connected_ = true;
 		is_closed_ = false;
-        client_->set_connected(true);
+		client_->set_connected(true);
 		fcntl(sock_fd_.get(), F_SETFL, fdopt);
 		return ResultType::SUCCESS();
 	} else {
-		ERROR_LOG << "connect to server[" << address << ":" << port
-		          << "] error.";
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_ << "] error.";
 		return ResultType::FAILURE(strerror(errno));
 	}
 }
 
-ResultType RPCClient::send_request(const char* msg, size_t size) {
-
-	if (size == 0) {
-		return ResultType::FAILURE("msg size is 0!");
+RPCClient::~RPCClient() {
+	if (is_closed_) {
+		return;
 	}
-	int sent_byte = 0;
-	int ret = 0;
-	while (true) {
-
-		ret = send(sock_fd_.get(), msg + sent_byte, size - sent_byte, 0);
-		if (ret == -1) {
-			if (errno == EWOULDBLOCK) { // 缓存数据
-				WARNING_LOG << "Client data is not sent completely!";
-				break;
-			} else if (errno == EINTR) {
-				continue;
-			} else
-				return ResultType::FAILURE("sent failed!");
-		} else if (ret == 0)
-			return ResultType::FAILURE("sent failed!");
-		sent_byte += ret;
-		DEBUG_LOG << "sent data size: "<< sent_byte;
-		if (sent_byte == size) {
-			break;
-		}
-		
-		usleep(3);
-	}
-	return ResultType::SUCCESS();
-}
-RPCClient::~RPCClient(){
-    if (is_closed_) {
-        return ;
-    }
-    auto ret = ::close(sock_fd_.get());
-    is_closed_ = true;
+	auto ret = ::close(sock_fd_.get());
+	is_closed_ = true;
 }
