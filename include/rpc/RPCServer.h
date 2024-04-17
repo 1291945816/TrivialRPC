@@ -53,7 +53,7 @@ public:
 	/**
 	 * @brief 作为服务提供者，向redis注册服务
 	 * @param service_name 注册的服务名称
-	 * @return true
+	 * @return true 
 	 * @return false
 	 */
 	bool registerService(std::string service_name);
