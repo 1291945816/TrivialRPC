@@ -59,7 +59,7 @@ inline std::string get_local_ip() {
 		if (ifreq->ifr_flags == AF_INET) {
 			if (ifreq->ifr_name == std::string("ens33") ||
 			    ifreq->ifr_name == std::string("eth0")) {
-				std::cout << inet_ntoa(
+				return inet_ntoa(
 				    ((struct sockaddr_in*)&(ifreq->ifr_addr))->sin_addr);
 			}
 			ifreq++;

@@ -23,6 +23,7 @@ int main(){
     ini::IniFile my_ini;
     my_ini.load("./test.ini");
     RPCServer server(my_ini);
+    server.registerService("/rpc-service");
     server.registerMethod("add", add);
     server.registerMethod("sub", sub);
     server.registerMethod("hello", [](){

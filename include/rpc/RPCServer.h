@@ -18,6 +18,7 @@
 #include "rpc/Protocol.h"
 #include "rpc/Serializer.h"
 #include "inicpp.h"
+#include "rpc/ZKClient.h"
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -51,12 +52,10 @@ public:
 	}
 	
 	/**
-	 * @brief 作为服务提供者，向redis注册服务
-	 * @param service_name 注册的服务名称
-	 * @return true 
-	 * @return false
+	 * @brief 作为服务提供者，向zk注册服务
+	 * @param service_name 注册的服务名称 这个永久的服务名称
 	 */
-	bool registerService(std::string service_name);
+	void registerService(std::string service_name);
 
 protected:
 	/**
@@ -125,6 +124,7 @@ private:
 	int port_; // 开放服务端口
 	std::map<std::string, std::function<void(Serializer, const std::string&)>>
 	    handlers_; // 注册的函数
+	ZKClient zkclient_{}; // 客户端 只要会话存在 则保证 下线自动销毁对应的节点
 };
 
 #endif // RPCSERVER_H
