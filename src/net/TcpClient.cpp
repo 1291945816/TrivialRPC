@@ -7,6 +7,7 @@
  ********************************************************************************/
 
 #include "net/TcpClient.h"
+
 #include "net/ResultType.h"
 #include "base/Logger.h"
 #include "net/common.h"
@@ -28,9 +29,14 @@
 #include <thread>
 #include <unistd.h>
 
+TcpClient::TcpClient(ini::IniFile& ini_file){
+	ip_ = ini_file["tcp_client"]["server_ip"].as<std::string>();
+	port_ = ini_file["tcp_client"]["server_port"].as<int>();
+
+}
 
 
-void TcpClient::initialize_socket() {
+int TcpClient::initialize_socket() {
 	sock_fd_.set(socket(AF_INET, SOCK_STREAM, 0));
 	const bool socket_failed = (sock_fd_.get() == -1);
 	if (socket_failed) {
@@ -42,6 +48,7 @@ void TcpClient::initialize_socket() {
 	auto ret = fcntl(sock_fd_.get(), F_SETFL, new_socket_flag);
 	if (ret == -1)
 		throw std::runtime_error(strerror(errno));
+	return old_socket_flag;
 }
 
 void TcpClient::set_address(const std::string& address, int port) {
@@ -60,11 +67,11 @@ void TcpClient::set_address(const std::string& address, int port) {
 	server_.sin_port = htons(port);
 }
 
-ResultType TcpClient::connect_to(const std::string& address, int port,
-                                 int timeout) {
+ResultType TcpClient::connect_server() {
+	int old = -1;
 	try {
-		initialize_socket();
-		set_address(address, port);
+		old = initialize_socket();
+		set_address(ip_, port_);
 	} catch (const std::runtime_error& error) {
 		ERROR_LOG << error.what();
 		return ResultType::FAILURE(error.what());
@@ -75,20 +82,21 @@ ResultType TcpClient::connect_to(const std::string& address, int port,
 		auto connect_result = connect(
 		    sock_fd_.get(), (struct sockaddr*)&server_, sizeof(server_));
 		if (connect_result == 0) {
-			INFO_LOG << "connect to server[" << address << ":" << port
+			INFO_LOG << "connect to server[" << ip_ << ":" << port_
 			         << "] successfully.";
 			is_connected_ = true;
             is_closed_ = false;
             start_worker();
+			fcntl(sock_fd_.get(), F_SETFL, old);
 			return ResultType::SUCCESS();
 		} else if (connect_result == -1) {
 			if (errno == EINTR) {
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "] interruptted by signal, try again.";
 				continue;
 			} else if (errno == EINPROGRESS) {
 				// 连接正在重试中
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "]  try again....";
 				break;
 			} else {
@@ -100,7 +108,7 @@ ResultType TcpClient::connect_to(const std::string& address, int port,
 	auto ret = fd_wait::wait_for_write(sock_fd_.get());
 	if (ret != fd_wait::Result::SUCCESS) {
 
-		ERROR_LOG << "connect to server[" << address << ":" << port
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_
 		          << "] error.";        
 		return ResultType::FAILURE(strerror(errno));
 	}
@@ -110,14 +118,15 @@ ResultType TcpClient::connect_to(const std::string& address, int port,
 		return ResultType::FAILURE(strerror(errno));
 	}
 	if (err == 0) {
-		INFO_LOG << "[select]connect to server[" << address << ":" << port
+		INFO_LOG << "[select]connect to server[" << ip_ << ":" << port_
 		         << "] successfully.";
 		is_connected_ = true;
         is_closed_ = false;
         start_worker();
+		fcntl(sock_fd_.get(), F_SETFL, old);
 		return ResultType::SUCCESS();
 	} else {
-		ERROR_LOG << "connect to server[" << address << ":" << port
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_
 		          << "] error.";
 		return ResultType::FAILURE(strerror(errno));
 	}

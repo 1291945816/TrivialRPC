@@ -8,6 +8,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 #include <byteswap.h>
+#include <regex>
+#include <string>
 #include <type_traits>
 #include <unistd.h>
 #include <syscall.h>
@@ -20,6 +22,7 @@
 #include <algorithm>
 #include <iostream>
 #include <type_traits>
+#include <vector>
 
 /**
  * @brief 字节序转换
@@ -56,6 +59,17 @@ constexpr T endian_cast(T value){
 
 }
 
+inline std::vector<std::string> parse_path(const std::string& path){
+    std::vector<std::string> components;
+    std::regex rgx("([^/]+)/?");
+    std::sregex_iterator iter(path.begin(),path.end(),rgx);
+    std::sregex_iterator end;
+    while (iter != end) {
+        components.push_back((*iter)[1].str());
+        ++iter;
+    }
+    return components;
+}
 
 #endif // UTIL_H
 

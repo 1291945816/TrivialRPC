@@ -6,16 +6,28 @@
 * @description: 
 ********************************************************************************/ 
 
-#include "base/Logger.h"
+
 #include "rpc/RPCClient.h"
-#include <string>
 
 
 int main(){
-    RPCClient client;
-    client.connect_to("127.0.0.1", 8081);
+    ini::IniFile my_ini;
+    my_ini.load("./test.ini");
+
+    RPCClient client(my_ini);
+    
+    auto ret_ = client.connect_server();
+    if (!ret_.is_successful()) {
+        std::cout << ret_.message();
+    }
     auto ret = client.call<std::string>("hello");
     std::cout <<ret.getCode() << " "<< ret.getMsg() << ": "<< ret.getVal();
+
+    auto ret1 = client.call<std::string>("hello");
+    std::cout <<ret1.getCode() << " "<< ret1.getMsg() << ": "<< ret1.getVal();
+
+    auto ret2 = client.call<std::string>("hello");
+    std::cout <<ret2.getCode() << " "<< ret2.getMsg() << ": "<< ret2.getVal();
 
 
 

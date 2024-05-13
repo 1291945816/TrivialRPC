@@ -11,10 +11,23 @@
 #include "net/common.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <random>
+#include <string>
 
-
+RPCClient::RPCClient(ini::IniFile ini_file) {
+	service_name_ = ini_file["rpc_client"]["provider_service_name"].as<std::string>();
+	zkclient_.start(); // 连接注册中心
+	if(zkclient_.check_znode_exists(service_name_.c_str())){
+		auto ret = zkclient_.get_children(service_name_.c_str());
+		INFO_LOG << ret.size();
+		service_info.swap(ret);
+	}
+	update_ip_info();
+	
+}
 
 int RPCClient::initialize_socket() {
 	sock_fd_.set(socket(AF_INET, SOCK_STREAM, 0));
@@ -47,38 +60,37 @@ void RPCClient::set_address(const std::string& address, int port) {
 	server_.sin_port = htons(port);
 }
 
-ResultType RPCClient::connect_to(const std::string& address, int port,
-                                 int timeout) {
+ResultType RPCClient::connect_server() {
 	int fdopt = 0;
 	try {
 		fdopt = initialize_socket();
-		set_address(address, port);
+		set_address(ip_, port_);
 	} catch (const std::runtime_error& error) {
-		// ERROR_LOG << error.what();
+		
 		return ResultType::FAILURE(error.what());
 	}
-    client_ = std::make_shared<Client>(sock_fd_.get());
-    session_ = std::make_shared<RPCSession>(client_);
+	client_ = std::make_shared<Client>(sock_fd_.get());
+	session_ = std::make_shared<RPCSession>(client_);
 	while (true) {
 		// 连接服务器
 		auto connect_result = connect(
 		    sock_fd_.get(), (struct sockaddr*)&server_, sizeof(server_));
 		if (connect_result == 0) {
-			INFO_LOG << "connect to server[" << address << ":" << port
+			INFO_LOG << "connect to server[" << ip_ << ":" << port_
 			         << "] successfully.";
 			is_connected_ = true;
 			is_closed_ = false;
-            client_->set_connected(true);
+			client_->set_connected(true);
 			fcntl(sock_fd_.get(), F_SETFL, fdopt);
 			return ResultType::SUCCESS();
 		} else if (connect_result == -1) {
 			if (errno == EINTR) {
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "] interruptted by signal, try again.";
 				continue;
 			} else if (errno == EINPROGRESS) {
 				// 连接正在重试中
-				INFO_LOG << "connect to server[" << address << ":" << port
+				INFO_LOG << "connect to server[" << ip_ << ":" << port_
 				         << "]  try again....";
 				break;
 			} else {
@@ -90,8 +102,7 @@ ResultType RPCClient::connect_to(const std::string& address, int port,
 	auto ret = fd_wait::wait_for_write(sock_fd_.get());
 	if (ret != fd_wait::Result::SUCCESS) {
 
-		ERROR_LOG << "connect to server[" << address << ":" << port
-		          << "] error.";
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_ << "] error.";
 		return ResultType::FAILURE(strerror(errno));
 	}
 	int err;
@@ -100,54 +111,42 @@ ResultType RPCClient::connect_to(const std::string& address, int port,
 		return ResultType::FAILURE(strerror(errno));
 	}
 	if (err == 0) {
-		INFO_LOG << "[select]connect to server[" << address << ":" << port
+		INFO_LOG << "[select]connect to server[" << ip_ << ":" << port_
 		         << "] successfully.";
 		is_connected_ = true;
 		is_closed_ = false;
-        client_->set_connected(true);
+		client_->set_connected(true);
 		fcntl(sock_fd_.get(), F_SETFL, fdopt);
 		return ResultType::SUCCESS();
 	} else {
-		ERROR_LOG << "connect to server[" << address << ":" << port
-		          << "] error.";
+		ERROR_LOG << "connect to server[" << ip_ << ":" << port_ << "] error.";
 		return ResultType::FAILURE(strerror(errno));
 	}
 }
 
-ResultType RPCClient::send_request(const char* msg, size_t size) {
-
-	if (size == 0) {
-		return ResultType::FAILURE("msg size is 0!");
+RPCClient::~RPCClient() {
+	if (is_closed_) {
+		return;
 	}
-	int sent_byte = 0;
-	int ret = 0;
-	while (true) {
-
-		ret = send(sock_fd_.get(), msg + sent_byte, size - sent_byte, 0);
-		if (ret == -1) {
-			if (errno == EWOULDBLOCK) { // 缓存数据
-				WARNING_LOG << "Client data is not sent completely!";
-				break;
-			} else if (errno == EINTR) {
-				continue;
-			} else
-				return ResultType::FAILURE("sent failed!");
-		} else if (ret == 0)
-			return ResultType::FAILURE("sent failed!");
-		sent_byte += ret;
-		DEBUG_LOG << "sent data size: "<< sent_byte;
-		if (sent_byte == size) {
-			break;
-		}
-		
-		usleep(3);
-	}
-	return ResultType::SUCCESS();
+	auto ret = ::close(sock_fd_.get());
+	is_closed_ = true;
 }
-RPCClient::~RPCClient(){
-    if (is_closed_) {
-        return ;
-    }
-    auto ret = ::close(sock_fd_.get());
-    is_closed_ = true;
+
+void RPCClient::update_ip_info(){
+	static std::random_device rd;
+	if(service_info.empty()) return;
+	std::uniform_int_distribution<> dist(0,service_info.size()-1);
+	// 获取一个随机数
+	auto index = dist(rd);
+	// 获取到接口的信息
+	std::string info = service_info[index];
+	auto data = zkclient_.get_data((service_name_+"/"+info).c_str());
+	auto pos = data.find(":");
+	if(pos == std::string::npos){
+		WARNING_LOG << "incoreect service informations";
+		return;
+	}
+	ip_ = data.substr(0,pos);
+	port_ = std::stoi(data.substr(pos+1));
+	INFO_LOG << "update ip: " << ip_ << ", port: " << port_;
 }

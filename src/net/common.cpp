@@ -7,7 +7,11 @@
  ********************************************************************************/
 
 #include "net/common.h"
+#include <arpa/inet.h>
 #include <cstddef>
+#include <net/if.h>
+#include <string>
+#include <sys/ioctl.h>
 #include <sys/select.h>
 
 #define SELECT_FAILED -1 // 失败
@@ -40,13 +44,15 @@ Result wait_for_write(const FileDescriptor& file_desc, uint32_t timeout_sec) {
 	tv.tv_sec = timeout_sec;
 	tv.tv_usec = 0;
 
-	fd_set writeset;;
+	fd_set writeset;
+	;
 
 	// fds 所有位置0
 	FD_ZERO(&writeset);
 	// 设置fdset的位
 	FD_SET(file_desc.get(), &writeset);
-	const auto ret = select(file_desc.get() + 1, nullptr, &writeset, nullptr, &tv);
+	const auto ret =
+	    select(file_desc.get() + 1, nullptr, &writeset, nullptr, &tv);
 	if (ret == SELECT_FAILED)
 		return Result::FAILURE;
 	else if (ret == SELECT_TIMEOUT)

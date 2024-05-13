@@ -7,6 +7,7 @@
 ********************************************************************************/ 
 
 #include "rpc/RPCServer.h"
+#include "inicpp.h"
 #include <iostream>
 
 int add(int a,int b){
@@ -19,14 +20,18 @@ int sub(int a,int b){
 
 
 int main(){
-    RPCServer server;
+    ini::IniFile my_ini;
+    my_ini.load("./test.ini");
+    RPCServer server(my_ini);
+    // 应该是先跑起来
+    server.registerService("/rpc-service");
     server.registerMethod("add", add);
     server.registerMethod("sub", sub);
     server.registerMethod("hello", [](){
         return std::string("hello");
     });
-    server.start(8081);
     server.run();
+
 
 
 
