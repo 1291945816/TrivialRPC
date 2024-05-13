@@ -11,12 +11,22 @@
 #include "net/common.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <random>
+#include <string>
 
 RPCClient::RPCClient(ini::IniFile ini_file) {
-	ip_ = ini_file["rpc_client"]["server_ip"].as<std::string>();
-	port_ = ini_file["rpc_client"]["server_port"].as<int>();
+	service_name_ = ini_file["rpc_client"]["provider_service_name"].as<std::string>();
+	zkclient_.start(); // 连接注册中心
+	if(zkclient_.check_znode_exists(service_name_.c_str())){
+		auto ret = zkclient_.get_children(service_name_.c_str());
+		INFO_LOG << ret.size();
+		service_info.swap(ret);
+	}
+	update_ip_info();
+	
 }
 
 int RPCClient::initialize_socket() {
@@ -56,7 +66,7 @@ ResultType RPCClient::connect_server() {
 		fdopt = initialize_socket();
 		set_address(ip_, port_);
 	} catch (const std::runtime_error& error) {
-		// ERROR_LOG << error.what();
+		
 		return ResultType::FAILURE(error.what());
 	}
 	client_ = std::make_shared<Client>(sock_fd_.get());
@@ -120,4 +130,23 @@ RPCClient::~RPCClient() {
 	}
 	auto ret = ::close(sock_fd_.get());
 	is_closed_ = true;
+}
+
+void RPCClient::update_ip_info(){
+	static std::random_device rd;
+	if(service_info.empty()) return;
+	std::uniform_int_distribution<> dist(0,service_info.size()-1);
+	// 获取一个随机数
+	auto index = dist(rd);
+	// 获取到接口的信息
+	std::string info = service_info[index];
+	auto data = zkclient_.get_data((service_name_+"/"+info).c_str());
+	auto pos = data.find(":");
+	if(pos == std::string::npos){
+		WARNING_LOG << "incoreect service informations";
+		return;
+	}
+	ip_ = data.substr(0,pos);
+	port_ = std::stoi(data.substr(pos+1));
+	INFO_LOG << "update ip: " << ip_ << ", port: " << port_;
 }

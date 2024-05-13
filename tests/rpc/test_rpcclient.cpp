@@ -23,6 +23,12 @@ int main(){
     auto ret = client.call<std::string>("hello");
     std::cout <<ret.getCode() << " "<< ret.getMsg() << ": "<< ret.getVal();
 
+    auto ret1 = client.call<std::string>("hello");
+    std::cout <<ret1.getCode() << " "<< ret1.getMsg() << ": "<< ret1.getVal();
+
+    auto ret2 = client.call<std::string>("hello");
+    std::cout <<ret2.getCode() << " "<< ret2.getMsg() << ": "<< ret2.getVal();
+
 
 
 

@@ -17,6 +17,7 @@
 #include "rpc/RPCSession.h"
 #include "rpc/Serializer.h"
 #include "inicpp.h"
+#include "rpc/ZKClient.h"
 #include <atomic>
 #include <cmath>
 #include <memory>
@@ -24,6 +25,7 @@
 #include <string>
 #include <tuple>
 #include <type_traits>
+#include <vector>
 
 class RPCClient {
 public:
@@ -110,6 +112,8 @@ private:
 		}
 		return val;
 	}
+	void update_ip_info();
+	
 
 private:
 	std::string ip_; // ip地址
@@ -120,6 +124,13 @@ private:
 	std::atomic_bool is_connected_{false};
 	std::atomic_bool is_closed_{true};
 	struct sockaddr_in server_; // 服务器
+
+	/**引入注册中心，订阅对应的服务**/
+	ZKClient zkclient_{}; // 注册中心
+	std::string service_name_{};
+	std::vector<std::string> service_info; // 每一项都是 ip:port
+
+
 };
 
 #endif // RPCCLIENT_H
